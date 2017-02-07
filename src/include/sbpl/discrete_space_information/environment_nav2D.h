@@ -42,7 +42,7 @@
 class CMDPSTATE;
 class MDPConfig;
 
-//configuration parameters
+/// configuration parameters for EnvironmentNAV2D
 typedef struct ENV_NAV2D_CONFIG
 {
     ENV_NAV2D_CONFIG() 
@@ -52,34 +52,69 @@ typedef struct ENV_NAV2D_CONFIG
 
     int EnvWidth_c;
     int EnvHeight_c;
+
     int StartX_c;
     int StartY_c;
+    
     int EndX_c;
     int EndY_c;
+    
     unsigned char** Grid2D;
-    //the value at which and above which cells are obstacles in the maps sent from outside
-    //the default is defined above
+
+    /// the value at which and above which cells are obstacles in the maps sent from outside
+    /// the default is defined above
     unsigned char obsthresh;
 
+    // List of neighbours of cell (x, y) 
+    // for example for 8 dirs in 2d grid.
+    // |#|#|#|
+    // |#|o|#|
+    // |#|#|#|
+    // for example for 16 dirs in 2d grid.
+    // | |#| |#| |
+    // |#|#|#|#|#|
+    // | |#|o|#| |
+    // |#|#|#|#|#|
+    // | |#| |#| |
+    // - cell of interest:  "o"
+    // - its neighbors:     "#"
+    /// The first coordinate of neighbours point (0, 0)
     int dx_[ENVNAV2D_MAXDIRS];
+    /// The second coordinate of neighbours point (0, 0)
     int dy_[ENVNAV2D_MAXDIRS];
-    //the intermediate cells through which the actions go 
+
+    // List of cells that are crossed by line linking (0, 0) and the his neighbor
+    // for example for 16 dirs in 2d grid and neigbour (2, 1)
+    // | |#| |#| |
+    // |#|#|#|C|@|
+    // | |#|o|C| |
+    // |#|#|#|#|#|
+    // | |#| |#| |
+    // - cell of interest:      "o"
+    // - neigbour of interest:  "@" 
+    // - crossed neighbours:    "C"
+    // - its neighbors:         "#", "C" and "@"
+    /// The first coordinate of intermediate cells the actions go
     int dxintersects_[ENVNAV2D_MAXDIRS][2];
+    /// The second coordinate of intermediate cells the actions go
     int dyintersects_[ENVNAV2D_MAXDIRS][2];
-    //distances of transitions
+
+    /// Distances of transitions in Euclidean space
     int dxy_distance_mm_[ENVNAV2D_MAXDIRS];
 
-    int numofdirs; //for now either 8 or 16 (default is 8)
+    /// Number of considered neighbors
+    int numofdirs; // for now either 8 or 16 (default is 8)
 } EnvNAV2DConfig_t;
 
+/// 2D entry for hash table ENVNAV2D::Coord2StateIDHashTable and ENVNAV2D::StateID2CoordTable
 typedef struct ENVHASHENTRY
 {
-    int stateID;
+    int stateID; /// index of entry in ENVNAV2D::StateID2CoordTable
     int X;
     int Y;
 } EnvNAV2DHashEntry_t;
 
-//variables that dynamically change (e.g., array of states, ...)
+/// variables that dynamically change (e.g., array of states, ...) in EnvironmentNAV2D
 typedef struct ENVNAV2D
 {
     ENVNAV2D() 

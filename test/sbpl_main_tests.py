@@ -122,16 +122,22 @@ def run_sbpl_test(env_type, planner_type, test_env, mprim, is_forward_search, na
     print_status("Motion primitives = {mprim}".format(mprim=mprim))
 
     forward_search_arg = ''
+
     if is_forward_search:
         forward_search_arg = 'forward'
     else:
         forward_search_arg = 'backward'
 
     args = [sbpl_exe, '--env=' + env_type, '--planner=' + planner_type, '--search-dir=' + forward_search_arg, test_env_path, mprim_path]
-    if mprim == '': args.pop()
-    if navigating: args.insert(1, '-s')
-    for arg in args:
-        print(arg)
+    
+    if mprim == '': 
+        args.pop()
+    
+    if navigating: 
+        args.insert(1, '-s')
+    
+    print_status("Invoke command:")
+    print(" ".join(args))
 
     start_time = time.time()
 
