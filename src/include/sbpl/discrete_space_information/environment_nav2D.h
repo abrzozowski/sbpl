@@ -82,6 +82,7 @@ typedef struct ENV_NAV2D_CONFIG
     int dx_[ENVNAV2D_MAXDIRS];
     /// The second coordinate of neighbours point (0, 0)
     int dy_[ENVNAV2D_MAXDIRS];
+    // TODO: rewrite to use sbpl_2Dcell_t class
 
     // List of cells that are crossed by line linking (0, 0) and the his neighbor
     // for example for 16 dirs in 2d grid and neigbour (2, 1)
