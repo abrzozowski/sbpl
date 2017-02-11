@@ -30,6 +30,7 @@
 #ifndef __MDPCONFIG_H_
 #define __MDPCONFIG_H_
 
+/// MDP stands for Markov Decision Processes
 struct MDPConfig
 {
     int startstateid;

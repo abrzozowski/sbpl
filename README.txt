@@ -119,6 +119,8 @@ II. Usage
 
         The following can be run from the directory containing test_sbpl,
         which we assume is a build directory in the root of this project.
+        *You can check output from a "test/sbpl_main_tests.py" script 
+        for valid testing commands. 
 
         $ ./test_sbpl ../env_examples/nav3d/env1.cfg
         Environment: xytheta; Planner: arastar; Search direction: backward

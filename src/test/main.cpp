@@ -1556,7 +1556,7 @@ int planrobarm(PlannerType plannerType, char* envCfgFilename, bool forwardSearch
 int main(int argc, char *argv[])
 {
     // Print help
-    if (argc == 2 && strcmp(argv[1], "-h") == 0) {
+    if (argc == 2 && (strcmp(argv[1], "-h") || strcmp(argv[1], "--help"))) {
         PrintHelp(argv);
         return MAIN_RESULT_SUCCESS;
     }

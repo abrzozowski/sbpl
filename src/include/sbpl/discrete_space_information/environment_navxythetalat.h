@@ -40,38 +40,43 @@
 // Define to test against in client code. Signals that Set2DBlockSize and
 // Set2DBucketSize are available in EnvironmentNAVXYTHETALATTICE
 #define SBPL_CUSTOM_2D_OPTIONS 1
-
-//eight-connected grid
+// eight-connected grid
 #define NAVXYTHETALAT_DXYWIDTH 8
-#define ENVNAVXYTHETALAT_DEFAULTOBSTHRESH 254	//see explanation of the value below
-//maximum number of states for storing them into lookup (as opposed to hash)
+// see explanation of the value below (EnvNAVXYTHETALATConfig_t::obsthresh)
+#define ENVNAVXYTHETALAT_DEFAULTOBSTHRESH 254	
+// maximum number of states for storing them into lookup (as opposed to hash)
 #define SBPL_XYTHETALAT_MAXSTATESFORLOOKUP 100000000
-//definition of theta orientations
-//0 - is aligned with X-axis in the positive direction (1,0 in polar coordinates)
-//theta increases as we go counterclockwise
-//number of theta values - should be power of 2
+// definition of theta orientations
+// 0 - is aligned with X-axis in the positive direction (1,0 in polar coordinates)
+// theta increases as we go counterclockwise
+// number of theta values - should be power of 2
 #define NAVXYTHETALAT_THETADIRS 16
-//number of actions per x,y,theta state
-//decrease, increase, same angle while moving plus decrease, increase angle while standing.
+// number of actions per x,y,theta state
+// decrease, increase, same angle while moving plus decrease, increase angle while standing.
 #define NAVXYTHETALAT_DEFAULT_ACTIONWIDTH 5
+// TODO: used in calculating motion cost
 #define NAVXYTHETALAT_COSTMULT_MTOMM 1000
 
 class CMDPSTATE;
 class MDPConfig;
 class SBPL2DGridSearch;
 
+/// It contain one curve of motion primitive
 struct EnvNAVXYTHETALATAction_t
 {
-    unsigned char aind; //index of the action (unique for given starttheta)
-    char starttheta;
-    char dX;
-    char dY;
-    char endtheta;
+    unsigned char aind; ///< index of the action (unique for given starttheta)
+    char starttheta; ///< discretized version of angle (continuous (radians) version depending on the EnvNAVXYTHETALATConfig_t::NumThetaDirs)
+    char dX; ///< the first coordinate of end pose
+    char dY; ///< the second coordinate of end pose
+    char endtheta; ///< angle of end orientation (with reference to EnvNAVXYTHETALATAction_t::starttheta)
     unsigned int cost;
+    /// The intermediate cells the actions go
     std::vector<sbpl_2Dcell_t> intersectingcellsV;
-    //start at 0,0,starttheta and end at endcell in continuous domain with half-bin less to account for 0,0 start
+    /// The intermediate states (3d cells) the actions go
+    /// start at 0,0,starttheta and end at endcell in continuous domain with half-bin less to account for 0,0 start
     std::vector<sbpl_xy_theta_pt_t> intermptV;
-    //start at 0,0,starttheta and end at endcell in discrete domain
+    /// The intermediate states (3d cells) the actions go
+    /// start at 0,0,starttheta and end at endcell in discrete domain
     std::vector<sbpl_xy_theta_cell_t> interm3DcellsV;
 
  int motprimID;
@@ -95,12 +100,12 @@ struct SBPL_xytheta_mprimitive
     int additionalactioncostmult;
     sbpl_xy_theta_cell_t endcell;
     double turning_radius;
-    //intermptV start at 0,0,starttheta and end at endcell in continuous
-    //domain with half-bin less to account for 0,0 start
+    /// intermptV start at 0,0,starttheta and end at endcell in continuous
+    /// domain with half-bin less to account for 0,0 start
     std::vector<sbpl_xy_theta_pt_t> intermptV;
 };
 
-//variables that dynamically change (e.g., array of states, ...)
+/// variables that dynamically change (e.g., array of states, ...)
 struct EnvironmentNAVXYTHETALAT_t
 {
     int startstateid;
@@ -111,12 +116,12 @@ struct EnvironmentNAVXYTHETALAT_t
     //any additional variables
 };
 
-//configuration parameters
+/// configuration parameters for EnvironmentNAVXYTHETALATTICE
 struct EnvNAVXYTHETALATConfig_t
 {
     int EnvWidth_c;
     int EnvHeight_c;
-    int NumThetaDirs;
+    int NumThetaDirs; //< number of theta (orientations) in which we consider planning
     int StartX_c;
     int StartY_c;
     int StartTheta;
@@ -125,53 +130,51 @@ struct EnvNAVXYTHETALATConfig_t
     int EndTheta;
     unsigned char** Grid2D;
 
-    std::vector<double> ThetaDirs;
+    std::vector<double> ThetaDirs;  // TODO: add description
     int StartTheta_rad;
     int EndTheta_rad;
     double min_turning_radius_m;
 
-    // the value at which and above which cells are obstacles in the maps sent from outside
-    // the default is defined above
+    /// the value at which and above which cells are obstacles in the maps sent from outside
+    /// the default is defined by ENVNAVXYTHETALAT_DEFAULTOBSTHRESH 
     unsigned char obsthresh;
 
-    // the value at which and above which until obsthresh (not including it)
-    // cells have the nearest obstacle at distance smaller than or equal to
-    // the inner circle of the robot. In other words, the robot is definitely
-    // colliding with the obstacle, independently of its orientation
-    // if no such cost is known, then it should be set to obsthresh (if center
-    // of the robot collides with obstacle, then the whole robot collides with
-    // it independently of its rotation)
+    /// the value at which and above which until obsthresh (not including it)
+    /// cells have the nearest obstacle at distance smaller than or equal to
+    /// the inner circle of the robot. In other words, the robot is definitely
+    /// colliding with the obstacle, independently of its orientation
+    /// if no such cost is known, then it should be set to obsthresh (if center
+    /// of the robot collides with obstacle, then the whole robot collides with
+    /// it independently of its rotation)
     unsigned char cost_inscribed_thresh;
 
-    // the value at which and above which until cost_inscribed_thresh (not including it) cells
-    // **may** have a nearest osbtacle within the distance that is in between
-    // the robot inner circle and the robot outer circle
-    // any cost below this value means that the robot will NOT collide with any
-    // obstacle, independently of its orientation
-    // if no such cost is known, then it should be set to 0 or -1 (then no cell
-    // cost will be lower than it, and therefore the robot's footprint will
-    // always be checked)
-    int cost_possibly_circumscribed_thresh; // it has to be integer, because -1 means that it is not provided.
+    /// the value at which and above which until EnvNAVXYTHETALATConfig_t::cost_inscribed_thresh (not including it) cells
+    /// **may** have a nearest osbtacle within the distance that is in between
+    /// the robot inner circle and the robot outer circle
+    /// any cost below this value means that the robot will NOT collide with any
+    /// obstacle, independently of its orientation
+    /// if no such cost is known, then it should be set to 0 or -1 (then no cell
+    /// cost will be lower than it, and therefore the robot's footprint will
+    /// always be checked)
+    int cost_possibly_circumscribed_thresh; ///< it has to be integer, because -1 means that it is not provided.
 
-    double nominalvel_mpersecs;
+    double nominalvel_mpersecs; // TODO: add description
 
-    //double nominalangvel_radpersecs;
+    double timetoturn45degsinplace_secs; // TODO: add description
 
-    double timetoturn45degsinplace_secs;
-
-    double cellsize_m;
+    double cellsize_m; // TODO: add description
 
     int dXY[NAVXYTHETALAT_DXYWIDTH][2];
 
-    //array of actions, ActionsV[i][j] - jth action for sourcetheta = i
+    /// array of actions, ActionsV[i][j] - jth action for sourcetheta = i
     EnvNAVXYTHETALATAction_t** ActionsV;
-    //PredActionsV[i] - vector of pointers to the actions that result in a state with theta = i
+    /// PredActionsV[i] - vector of pointers to the actions that result in a state with theta = i
     std::vector<EnvNAVXYTHETALATAction_t*>* PredActionsV;
 
-    int actionwidth; //number of motion primitives
+    int actionwidth; ///< number of actions in motion primitive
     std::vector<SBPL_xytheta_mprimitive> mprimV;
 
-    std::vector<sbpl_2Dpt_t> FootprintPolygon;
+    std::vector<sbpl_2Dpt_t> FootprintPolygon; // TODO: add description
 };
 
 class EnvNAVXYTHETALAT_InitParms
@@ -191,7 +194,7 @@ public:
 };
 
 /** \brief 3D (x,y,theta) planning using lattice-based graph problem. For
- *         general structure see comments on parent class DiscreteSpaceInformation
+ *         general structure see comments on parent class DiscreteSpaceInformation.
  *         For info on lattice-based planning used here, you can check out the paper:
  *         Maxim Likhachev and Dave Ferguson, " Planning Long Dynamically-Feasible
  *         Maneuvers for Autonomous Vehicles", IJRR'09
@@ -460,22 +463,22 @@ public:
 protected:
     virtual int GetActionCost(int SourceX, int SourceY, int SourceTheta, EnvNAVXYTHETALATAction_t* action);
 
-    //member data
+    // member data
     EnvNAVXYTHETALATConfig_t EnvNAVXYTHETALATCfg;
     EnvironmentNAVXYTHETALAT_t EnvNAVXYTHETALAT;
-    std::vector<sbpl_xy_theta_cell_t> affectedsuccstatesV; //arrays of states whose outgoing actions cross cell 0,0
-    std::vector<sbpl_xy_theta_cell_t> affectedpredstatesV; //arrays of states whose incoming actions cross cell 0,0
+    std::vector<sbpl_xy_theta_cell_t> affectedsuccstatesV; ///< arrays of states whose outgoing actions cross cell 0,0
+    std::vector<sbpl_xy_theta_cell_t> affectedpredstatesV; ///< arrays of states whose incoming actions cross cell 0,0
     int iteration;
-    int blocksize; // 2D block size
-    int bucketsize; // 2D bucket size
+    int blocksize; ///<  2D block size
+    int bucketsize; ///< 2D bucket size
 
-    bool bUseNonUniformAngles;
+    bool bUseNonUniformAngles; // TODO: add description used in  normalizeDiscAngle
 
-    //2D search for heuristic computations
-    bool bNeedtoRecomputeStartHeuristics; //set whenever grid2Dsearchfromstart needs to be re-executed
-    bool bNeedtoRecomputeGoalHeuristics; //set whenever grid2Dsearchfromgoal needs to be re-executed
-    SBPL2DGridSearch* grid2Dsearchfromstart; //computes h-values that estimate distances from start x,y to all cells
-    SBPL2DGridSearch* grid2Dsearchfromgoal; //computes h-values that estimate distances to goal x,y from all cells
+    // 2D search for heuristic computations
+    bool bNeedtoRecomputeStartHeuristics; ///< set whenever EnvironmentNAVXYTHETALATTICE::grid2Dsearchfromstart needs to be re-executed
+    bool bNeedtoRecomputeGoalHeuristics; ///< set whenever EnvironmentNAVXYTHETALATTICE::grid2Dsearchfromgoal needs to be re-executed
+    SBPL2DGridSearch* grid2Dsearchfromstart; ///< computes h-values that estimate distances from start x,y to all cells
+    SBPL2DGridSearch* grid2Dsearchfromgoal; ///< computes h-values that estimate distances to goal x,y from all cells
 
     virtual void ReadConfiguration(FILE* fCfg);
 
@@ -524,7 +527,13 @@ protected:
 
     virtual bool ReadMotionPrimitives(FILE* fMotPrims);
     virtual bool ReadinMotionPrimitive(SBPL_xytheta_mprimitive* pMotPrim, FILE* fIn);
+    /**
+     * \brief read cell as three parameters (x, y, theta) from input file and store it in sbpl_xy_theta_cell_t pointer
+    */
     virtual bool ReadinCell(sbpl_xy_theta_cell_t* cell, FILE* fIn);
+    /**
+     * \brief read pose as three parameters (x, y, theta) from input file and store it in sbpl_xy_theta_pt_t pointer
+    */
     virtual bool ReadinPose(sbpl_xy_theta_pt_t* pose, FILE* fIn);
 
     virtual void PrintHeuristicValues();
@@ -661,10 +670,10 @@ public:
     const EnvNAVXYTHETALATHashEntry_t* GetStateEntry(int state_id) const;
 
 protected:
-    //hash table of size x_size*y_size. Maps from coords to stateId
+    // hash table of size x_size*y_size. Maps from coords to stateId
     int HashTableSize;
     std::vector<EnvNAVXYTHETALATHashEntry_t*>* Coord2StateIDHashTable;
-    //vector that maps from stateID to coords
+    // vector that maps from stateID to coords
     std::vector<EnvNAVXYTHETALATHashEntry_t*> StateID2CoordTable;
 
     EnvNAVXYTHETALATHashEntry_t** Coord2StateIDHashTable_lookup;
@@ -676,7 +685,7 @@ protected:
     virtual EnvNAVXYTHETALATHashEntry_t* GetHashEntry_lookup(int X, int Y, int Theta);
     virtual EnvNAVXYTHETALATHashEntry_t* CreateNewHashEntry_lookup(int X, int Y, int Theta);
 
-    //pointers to functions
+    // pointers to functions
     EnvNAVXYTHETALATHashEntry_t* (EnvironmentNAVXYTHETALAT::*GetHashEntry)(int X, int Y, int Theta);
     EnvNAVXYTHETALATHashEntry_t* (EnvironmentNAVXYTHETALAT::*CreateNewHashEntry)(int X, int Y, int Theta);
 
