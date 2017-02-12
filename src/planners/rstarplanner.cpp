@@ -1209,80 +1209,93 @@ bool RSTARPlanner::Search(vector<int>& pathIds, int & PathCost, bool bFirstSolut
     highlevel_searchexpands = 0;
     lowlevel_searchexpands = 0;
 
-    //reset the return values
+    // reset the return values
     PathCost = INFINITECOST;
     pathIds.clear();
 
-    //bFirstSolution = false; //TODO-remove this but then fix crashing because later
-    //searches within cycle re-initialize g-vals and test path found fails if last search ran out of time
-    //so we need to save solutions between iterations
-    //also, we need to call change callnumber before each search
+    // bFirstSolution = false; //TODO-remove this but then fix crashing because later
+    // searches within cycle re-initialize g-vals and test path found fails if last search ran out of time
+    // so we need to save solutions between iterations
+    // also, we need to call change callnumber before each search
 
 #if DEBUG
     SBPL_FPRINTF(fDeb, "new search call (call number=%d)\n", pSearchStateSpace->callnumber);
 #endif
 
-    //set epsilons
+    // set epsilons
     pSearchStateSpace->eps = this->finitial_eps;
     pSearchStateSpace->eps_satisfied = INFINITECOST;
 
-    if (pSearchStateSpace->bReinitializeSearchStateSpace == true) {
+    if (pSearchStateSpace->bReinitializeSearchStateSpace == true)
+    {
         //re-initialize state space
         ReInitializeSearchStateSpace();
     }
 
-    if (bOptimalSolution) {
+    if (bOptimalSolution)
+    {
         pSearchStateSpace->eps = 1;
         MaxNumofSecs = INFINITECOST;
     }
-    else if (bFirstSolution) {
+    else if (bFirstSolution)
+    {
         MaxNumofSecs = INFINITECOST;
     }
 
-    //get the size of environment that is already allocated
+    // get the size of environment that is already allocated
     int oldenvsize = environment_->StateID2IndexMapping.size() * sizeof(int);
 
-    //the main loop of R*
+    // the main loop of R*
     int prevexpands = 0;
     clock_t loop_time;
+
     //TODO - change FINAL_EPS and DECREASE_EPS onto a parameter
     while (pSearchStateSpace->eps_satisfied > final_epsilon &&
            (clock() - TimeStarted) < MaxNumofSecs * (double)CLOCKS_PER_SEC)
     {
         loop_time = clock();
 
-        //decrease eps for all subsequent iterations
-        if (fabs(pSearchStateSpace->eps_satisfied - pSearchStateSpace->eps) < ERR_EPS && !bFirstSolution) {
+        // decrease eps for all subsequent iterations
+        if (fabs(pSearchStateSpace->eps_satisfied - pSearchStateSpace->eps) < ERR_EPS && !bFirstSolution)
+        {
             pSearchStateSpace->eps = pSearchStateSpace->eps - dec_eps;
-            if (pSearchStateSpace->eps < final_epsilon) pSearchStateSpace->eps = final_epsilon;
+            if (pSearchStateSpace->eps < final_epsilon)
+            {
+                pSearchStateSpace->eps = final_epsilon;
+            }
 
-            //the priorities need to be updated
+            // the priorities need to be updated
             pSearchStateSpace->bReevaluatefvals = true;
 
-            //it will be a new search. Since R* is non-incremental, it will have to be a new call
+            // it will be a new search. Since R* is non-incremental, it will have to be a new call
             pSearchStateSpace->bNewSearchIteration = true;
             pSearchStateSpace->bReinitializeSearchStateSpace = true;
         }
 
-        //if(pSearchStateSpace->bReinitializeSearchStateSpace == true){
-        //re-initialize state space
+        // if(pSearchStateSpace->bReinitializeSearchStateSpace == true){
+        // re-initialize state space
         ReInitializeSearchStateSpace(); //TODO - we have to do it currently since g-vals from old searches are invalid
         //}
 
-        if (pSearchStateSpace->bNewSearchIteration) {
+        if (pSearchStateSpace->bNewSearchIteration)
+        {
             pSearchStateSpace->searchiteration++;
             pSearchStateSpace->bNewSearchIteration = false;
         }
 
-        //re-compute f-values if necessary and reorder the heap
-        if (pSearchStateSpace->bReevaluatefvals) Reevaluatefvals();
+        // re-compute f-values if necessary and reorder the heap
+        if (pSearchStateSpace->bReevaluatefvals)
+        {
+            Reevaluatefvals();
+        }
 
         //improve or compute path
-        if (ImprovePath(MaxNumofSecs) == 1) {
+        if (ImprovePath(MaxNumofSecs) == 1)
+        {
             pSearchStateSpace->eps_satisfied = pSearchStateSpace->eps; //note: eps is satisfied probabilistically
         }
 
-        //print the solution cost and eps bound
+        // print the solution cost and eps bound
         SBPL_PRINTF("eps=%f highlevel expands=%d g(searchgoal)=%d time=%.3f\n", pSearchStateSpace->eps_satisfied,
                     highlevel_searchexpands - prevexpands,
                     ((RSTARState*)pSearchStateSpace->searchgoalstate->PlannerSpecificData)->g,
@@ -1297,31 +1310,40 @@ bool RSTARPlanner::Search(vector<int>& pathIds, int & PathCost, bool bFirstSolut
 #endif
         prevexpands = highlevel_searchexpands;
 
-        //keep track of the best solution so far
+        // keep track of the best solution so far
         vector<int> CurrentPathIds;
         int CurrentPathCost = ((RSTARState*)pSearchStateSpace->searchgoalstate->PlannerSpecificData)->g;
         if (CurrentPathCost == INFINITECOST ||
             ((RSTARACTIONDATA*)((RSTARState*)pSearchStateSpace->searchgoalstate->PlannerSpecificData)->bestpredaction->PlannerSpecificData)->pathIDs.size() == 0)
         {
-            //the path to the goal is not found, it is just goal has been
-            //generated but the last edge to it wasn't computed yet
+            // the path to the goal is not found, it is just goal has been
+            // generated but the last edge to it wasn't computed yet
             CurrentPathCost = INFINITECOST;
         }
-        else {
-            //get the found path
+        else
+        {
+            // get the found path
             CurrentPathIds = GetSearchPath(CurrentPathCost);
         }
-        //keep track of the best solution
-        if (CurrentPathCost < PathCost) {
+
+        // keep track of the best solution
+        if (CurrentPathCost < PathCost)
+        {
             PathCost = CurrentPathCost;
             pathIds = CurrentPathIds;
         }
 
-        //if just the first solution then we are done
-        if (bFirstSolution) break;
+        // if just the first solution then we are done
+        if (bFirstSolution)
+        {
+            break;
+        }
 
-        //no solution exists
-        if (((RSTARState*)pSearchStateSpace->searchgoalstate->PlannerSpecificData)->g == INFINITECOST) break;
+        // no solution exists
+        if (((RSTARState*)pSearchStateSpace->searchgoalstate->PlannerSpecificData)->g == INFINITECOST)
+        {
+            break;
+        }
     }
 
 #if DEBUG
@@ -1332,11 +1354,13 @@ bool RSTARPlanner::Search(vector<int>& pathIds, int & PathCost, bool bFirstSolut
     SBPL_PRINTF("MaxMemoryCounter = %d\n", MaxMemoryCounter);
 
     bool ret = false;
-    if (PathCost == INFINITECOST) {
+    if (PathCost == INFINITECOST)
+    {
         SBPL_PRINTF("could not find a solution\n");
         ret = false;
     }
-    else {
+    else
+    {
         SBPL_PRINTF("solution is found\n");
         ret = true;
     }
